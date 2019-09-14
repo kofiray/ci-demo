@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 replicaCount: 2
 image:
-  repository: kofiray/ci-demo
+        repository: kofiray/ci-demo:latest
   #  tag: latest
   pullSecret: regsecret
   pullPolicy: IfNotPresent
