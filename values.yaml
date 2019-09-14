@@ -4,7 +4,7 @@
 replicaCount: 2
 image:
   repository: kofiray/ci-demo
-  #  tag: latest
+  tag: latest
   pullSecret: regsecret
   pullPolicy: IfNotPresent
   # for local development against Minikube registry
