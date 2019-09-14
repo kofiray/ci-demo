@@ -1,8 +1,8 @@
 import java.text.SimpleDateFormat
 
 currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) + "-" + env.BUILD_NUMBER
-env.REPO = "https://gitlab.com/kofiray/degree-53-ci.git"
-env.IMAGE = "kofiray/degree-53-ci"
+env.REPO = "https://github.com/kofiray/ci-demo.git
+env.IMAGE = "kofiray/ee-ci"
 env.TAG_BETA = "${currentBuild.displayName}-${env.BRANCH_NAME}"
 
 node("docker") {
