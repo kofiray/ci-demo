@@ -1,34 +1,55 @@
-import java.text.SimpleDateFormat
+def label = "kaniko-${UUID.randomUUID().toString()}"
 
-currentBuild.displayName = new SimpleDateFormat("yy.MM.dd").format(new Date()) + "-" + env.BUILD_NUMBER
 env.REPO = "https://github.com/kofiray/ci-demo.git"
-env.IMAGE = "kofiray/ee-ci"
+env.IMAGE = "kofiray/ci-demo"
 env.TAG_BETA = "${currentBuild.displayName}-${env.BRANCH_NAME}"
 
-node("docker") {
-  stage("build") {
-    git "${env.REPO}"
-    sh """sudo docker image build \
-      -t ${env.IMAGE}:${env.TAG_BETA} ."""
-    withCredentials([usernamePassword(
-      credentialsId: "docker",
-      usernameVariable: "USER",
-      passwordVariable: "PASS"
-    )]) {
-      sh """sudo docker login \
-        -u $USER -p $PASS"""
-    }
-    sh """sudo docker image push \
-      ${env.IMAGE}:${env.TAG_BETA}"""
+podTemplate(name: 'kaniko', label: label, yaml: """
+kind: Pod
+metadata:
+  name: kaniko
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    imagePullPolicy: Always
+    command:
+    - /busybox/cat
+    tty: true
+    volumeMounts:
+      - name: jenkins-docker-cfg
+        mountPath: /kaniko/.docker
+  volumes:
+  - name: jenkins-docker-cfg
+    projected:
+      sources:
+      - secret:
+          name: regcred
+          items:
+            - key: .dockerconfigjson
+              path: config.json
+""") {
+  node(label) {
+    stage('Build with Kaniko') {
 
+     //  git 'https://github.com/kofiray/ci-demo.git'
+       git "${env.REPO}"
+        container(name: 'kaniko', shell: '/busybox/sh') {
+           withEnv(['PATH+EXTRA=/busybox']) {
+            sh '''#!/busybox/sh
+            /kaniko/executor --context `pwd` --destination=index.docker.io/kofiray/ci-demo
+            '''
+           }
+        }
+      }
     }
-}
+
     node("kubernetes") {
-    stage("deploy") { 
+    stage("deploy") {
     git "${env.REPO}"
         container("helm") {
-            sh "helm install --name=qbe--demo --namespace cluster-ops . --set image.tag=${env.TAG_BETA}"
-            
+          sh "helm install --name=ee-demo --namespace cluster-ops ."
         }
     }
     }
+  }
